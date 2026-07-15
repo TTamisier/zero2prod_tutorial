@@ -1,10 +1,9 @@
 //! tests/health_check.rs
 
-use std::any::TypeId;
 async fn spawn_app() -> String {
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
     let address = format!("http://{}", listener.local_addr().unwrap());
-    tokio::spawn(zero2prod::run(listener));
+    tokio::spawn(zero2prod::startup::run(listener));
     address
 }
 
@@ -31,7 +30,7 @@ async fn subscribe_returns_200_valid_form_data() {
 
     let body = "name=le%20guin&email=ursula_le_guin%40gmail.com";
     let response = client
-        .post(&format!("{}/subscriptions", &app_address))
+        .post(format!("{}/subscriptions", app_address))
         .header("Content-Type", "application/x-www-form-urlencoded")
         .body(body)
         .send()
@@ -54,7 +53,7 @@ async fn subscribe_return_400_when_data_is_missing() {
 
     for (invalid_body, error_message) in test_cases {
         let response = client
-            .post(&format!("{}/subscriptions", &app_address))
+            .post(format!("{}/subscriptions", app_address))
             .header("Content-Type", "application/x-www-form-urlencoded")
             .body(invalid_body)
             .send()

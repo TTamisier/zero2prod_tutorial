@@ -18,3 +18,8 @@ tokio = { version = "1.52.3", features = ["macros", "rt-multi-thread", "net"] }
 
 [dev-dependencies]
 reqwest = { version = "0.12", features = ["json"] }
+
+[dependencies.sqlx]
+version = "0.9.0"
+default-features = false
+features = ["runtime-tokio", "macros", "postgres", "uuid", "chrono", "migrate"]
