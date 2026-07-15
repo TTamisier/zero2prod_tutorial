@@ -1,6 +1,6 @@
 //! tests/health_check.rs
 use sqlx::{Connection, PgConnection};
-use zero2prod::configuration::{self, get_configuration};
+use zero2prod::configuration::get_configuration;
 
 async fn spawn_app() -> String {
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
@@ -31,7 +31,7 @@ async fn subscribe_returns_200_valid_form_data() {
     let configuration = get_configuration().expect("Failed to read configurations");
     let connection_string = configuration.database.connection_string();
 
-    let connection: PgConnection = PgConnection::connect(&connection_string)
+    let mut connection: PgConnection = PgConnection::connect(&connection_string)
         .await
         .expect("Failed to connect to Postgres");
     let client = reqwest::Client::new();
@@ -47,6 +47,14 @@ async fn subscribe_returns_200_valid_form_data() {
         .expect("Failed to execute request.");
 
     assert_eq!(200, response.status().as_u16());
+
+    let saved = sqlx::query!("SELECT email, name FROM subscriptions",)
+        .fetch_one(&mut connection)
+        .await
+        .expect("Failed to fetch saved subscription");
+
+    assert_eq!(saved.email, "ursula_le_guin@gmail.com");
+    assert_eq!(saved.name, "le guin");
 }
 
 #[tokio::test]
