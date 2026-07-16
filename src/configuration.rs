@@ -39,6 +39,9 @@ pub fn get_configuration() -> Result<Settings, config::ConfigError> {
         config::File::from(configuration_directory.join(environment.as_str())).required(true),
     )?;
 
+    // Override with environment variables (e.g. APP__DATABASE__HOST=...)
+    settings.merge(config::Environment::with_prefix("APP").separator("__"))?;
+
     settings.try_into() // convert config values into our settings type
 }
 
