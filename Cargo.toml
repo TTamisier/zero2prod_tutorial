@@ -23,6 +23,7 @@ tracing-subscriber = { version = "0.3.19", features = ["env-filter", "fmt"] }
 tower-http = { version = "0.6", features = ["trace"] }
 tracing-bunyan-formatter = "0.3.10"
 tracing-log = "0.2.0"
+secrecy = { version = "0.8", features = ["serde"] }
 
 [dev-dependencies]
 reqwest = { version = "0.12", features = ["json"] }
