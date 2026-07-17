@@ -33,4 +33,12 @@ once_cell = "1"
 [dependencies.sqlx]
 version = "0.9.0"
 default-features = false
-features = ["runtime-tokio", "macros", "postgres", "uuid", "chrono", "migrate"]
+features = [
+    "runtime-tokio",
+    "macros",
+    "postgres",
+    "uuid",
+    "chrono",
+    "migrate",
+    "tls-native-tls",
+]

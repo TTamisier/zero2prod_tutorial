@@ -1751,6 +1751,7 @@ dependencies = [
  "indexmap",
  "log",
  "memchr",
+ "native-tls",
  "percent-encoding",
  "serde 1.0.228",
  "serde_json",
