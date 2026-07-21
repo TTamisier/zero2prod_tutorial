@@ -2,8 +2,10 @@ use axum::Form;
 use axum::extract::State;
 use axum::http::StatusCode;
 use chrono::Utc;
-use sqlx::postgres::PgPool;
 use uuid::Uuid;
+
+use crate::domain::{NewSubscriber, SubscriberEmail, SubscriberName};
+use crate::startup::AppState;
 
 #[derive(serde::Deserialize)]
 pub struct FormData {
@@ -11,17 +13,31 @@ pub struct FormData {
     name: String,
 }
 
+impl TryFrom<FormData> for NewSubscriber {
+    type Error = String;
+
+    fn try_from(form: FormData) -> Result<NewSubscriber, String> {
+        let name = SubscriberName::parse(form.name)?;
+        let email = SubscriberEmail::parse(form.email)?;
+        Ok(NewSubscriber { email, name })
+    }
+}
+
 #[tracing::instrument(
     name = "Adding a new subscriber",
-    skip(form, pool),
+    skip(form, state),
     fields(
         request_id = %Uuid::new_v4(),
         subscriber_email = %form.email,
         subscriber_name = %form.name,
     )
 )]
-pub async fn subscribe(State(pool): State<PgPool>, Form(form): Form<FormData>) -> StatusCode {
-    match insert_subscriber(&pool, &form).await {
+pub async fn subscribe(State(state): State<AppState>, Form(form): Form<FormData>) -> StatusCode {
+    let new_subscriber = match form.try_into() {
+        Ok(subscriber) => subscriber,
+        Err(_) => return StatusCode::BAD_REQUEST,
+    };
+    match insert_subscriber(&state.db_pool, &new_subscriber).await {
         Ok(_) => StatusCode::OK,
         Err(_e) => StatusCode::INTERNAL_SERVER_ERROR,
     }
@@ -29,14 +45,17 @@ pub async fn subscribe(State(pool): State<PgPool>, Form(form): Form<FormData>) -
 
 #[tracing::instrument(
     name = "Saving new subscriber details in the database",
-    skip(form, pool)
+    skip(new_subscriber, pool)
 )]
-pub async fn insert_subscriber(pool: &PgPool, form: &FormData) -> Result<(), sqlx::Error> {
+pub async fn insert_subscriber(
+    pool: &sqlx::PgPool,
+    new_subscriber: &NewSubscriber,
+) -> Result<(), sqlx::Error> {
     sqlx::query!(
-        "INSERT INTO subscriptions (id, email, name, subscribed_at) VALUES ($1, $2, $3, $4)",
+        "INSERT INTO subscriptions (id, email, name, subscribed_at, status) VALUES ($1, $2, $3, $4, 'confirmed')",
         Uuid::new_v4(),
-        form.email,
-        form.name,
+        new_subscriber.email.as_ref(),
+        new_subscriber.name.as_ref(),
         Utc::now()
     )
     .execute(pool)
