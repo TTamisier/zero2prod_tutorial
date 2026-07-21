@@ -1,5 +1,6 @@
 use crate::configuration::Settings;
 use crate::email_client::EmailClient;
+use crate::routes::confirm;
 use crate::routes::health_check;
 use crate::routes::subscribe;
 use axum::routing::post;
@@ -13,6 +14,7 @@ use tower_http::trace::TraceLayer;
 pub struct AppState {
     pub db_pool: PgPool,
     pub email_client: EmailClient,
+    pub base_url: ApplicationBaseUrl,
 }
 
 pub struct Application {
@@ -47,7 +49,12 @@ impl Application {
         );
         let listener = tokio::net::TcpListener::bind(address).await.unwrap();
         let port = listener.local_addr().unwrap().port();
-        let server = run(listener, connection_pool, email_client);
+        let server = run(
+            listener,
+            connection_pool,
+            email_client,
+            configuration.application.base_url,
+        );
         Ok(Self { port, server })
     }
 
@@ -66,21 +73,27 @@ pub async fn get_connection_pool(config: &crate::configuration::DatabaseSettings
         .connect_lazy_with(config.with_db())
 }
 
+#[derive(Clone)]
+pub struct ApplicationBaseUrl(pub String);
+
 pub fn run(
     listener: tokio::net::TcpListener,
     db_pool: PgPool,
     email_client: EmailClient,
+    base_url: String,
 ) -> Serve<tokio::net::TcpListener, Router, Router> {
     tracing::info!("Starting server on {}", listener.local_addr().unwrap());
     let state = AppState {
         db_pool,
         email_client,
+        base_url: ApplicationBaseUrl(base_url),
     };
 
     let app: Router = Router::new()
         .route("/", get(|| async { "Hello, World!" }))
         .route("/health_check", get(health_check))
         .route("/subscriptions", post(subscribe))
+        .route("/subscriptions/confirm", get(confirm))
         .layer(TraceLayer::new_for_http())
         .with_state(state);
 
