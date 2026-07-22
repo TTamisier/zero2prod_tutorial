@@ -51,12 +51,8 @@ pub struct DatabaseSettings {
 }
 
 pub fn get_configuration() -> Result<Settings, config::ConfigError> {
-    let mut settings = config::Config::default(); // configuration reader
     let base_path = std::env::current_dir().expect("Failed to determine the current directory");
     let configuration_directory = base_path.join("configuration");
-
-    // Read default configuration file
-    settings.merge(config::File::from(configuration_directory.join("base")).required(true))?;
 
     // Detect running environnement
     let environment: Environment = std::env::var("APP_ENVIRONMENT")
@@ -64,14 +60,18 @@ pub fn get_configuration() -> Result<Settings, config::ConfigError> {
         .try_into()
         .expect("Failed to parse APP_ENVIRONMENT.");
 
-    settings.merge(
-        config::File::from(configuration_directory.join(environment.as_str())).required(true),
-    )?;
+    let settings = config::Config::builder()
+        // Read default configuration file
+        .add_source(config::File::from(configuration_directory.join("base")).required(true))
+        // Add environment-specific configuration
+        .add_source(
+            config::File::from(configuration_directory.join(environment.as_str())).required(true),
+        )
+        // Override with environment variables (e.g. APP__DATABASE__HOST=...)
+        .add_source(config::Environment::with_prefix("APP").separator("__"))
+        .build()?;
 
-    // Override with environment variables (e.g. APP__DATABASE__HOST=...)
-    settings.merge(config::Environment::with_prefix("APP").separator("__"))?;
-
-    settings.try_into() // convert config values into our settings type
+    settings.try_deserialize::<Settings>() // convert config values into our settings type
 }
 
 pub enum Environment {
