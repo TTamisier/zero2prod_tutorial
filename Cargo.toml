@@ -27,7 +27,7 @@ secrecy = { version = "0.8", features = ["serde"] }
 serde-aux = "3"
 unicode-segmentation = "1"
 claims = "0.8.0"
-validator = "0.16.0"
+validator = "0.20.0"
 reqwest = { version = "0.12", features = ["json"] }
 rand = { version = "0.8", features = ["std_rng"] }
 
