@@ -3,6 +3,7 @@ use crate::email_client::EmailClient;
 use crate::routes::confirm;
 use crate::routes::health_check;
 use crate::routes::subscribe;
+use crate::routes::unsubscribe;
 use axum::routing::post;
 use axum::serve::Serve;
 use axum::{Router, routing::get};
@@ -94,6 +95,7 @@ pub fn run(
         .route("/health_check", get(health_check))
         .route("/subscriptions", post(subscribe))
         .route("/subscriptions/confirm", get(confirm))
+        .route("/subscriptions/unsubscribe", get(unsubscribe))
         .layer(TraceLayer::new_for_http())
         .with_state(state);
 

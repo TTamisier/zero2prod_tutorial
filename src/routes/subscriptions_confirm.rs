@@ -1,3 +1,4 @@
+use crate::routes::get_subscriber_id_from_token;
 use axum::extract::{Query, State};
 use axum::http::StatusCode;
 use sqlx::PgPool;
@@ -6,12 +7,15 @@ use uuid::Uuid;
 use crate::startup::AppState;
 
 #[derive(serde::Deserialize)]
-pub struct Parameters {
+pub struct ConfirmParameters {
     subscription_token: String,
 }
 
 #[tracing::instrument(name = "Confirm a pending subscriber", skip(parameters, state))]
-pub async fn confirm(parameters: Query<Parameters>, State(state): State<AppState>) -> StatusCode {
+pub async fn confirm(
+    parameters: Query<ConfirmParameters>,
+    State(state): State<AppState>,
+) -> StatusCode {
     let pool = &state.db_pool;
     let id = match get_subscriber_id_from_token(pool, &parameters.subscription_token).await {
         Ok(id) => id,
@@ -41,22 +45,4 @@ pub async fn confirm_subscriber(pool: &PgPool, subscriber_id: Uuid) -> Result<()
         e
     })?;
     Ok(())
-}
-
-#[tracing::instrument(name = "Get subscriber_id from token", skip(subscription_token, pool))]
-pub async fn get_subscriber_id_from_token(
-    pool: &PgPool,
-    subscription_token: &str,
-) -> Result<Option<Uuid>, sqlx::Error> {
-    let result = sqlx::query!(
-        "SELECT subscriber_id FROM subscription_token WHERE subscription_token = $1",
-        subscription_token,
-    )
-    .fetch_optional(pool)
-    .await
-    .map_err(|e| {
-        tracing::error!("Failed to execute query: {:?}", e);
-        e
-    })?;
-    Ok(result.map(|r| r.subscriber_id))
 }

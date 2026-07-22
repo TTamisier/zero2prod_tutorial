@@ -64,8 +64,8 @@ struct SendEmailRequest<'a> {
 #[cfg(test)]
 mod tests {
     use crate::{domain::SubscriberEmail, email_client::EmailClient};
-    use claim::assert_err;
-    use claim::assert_ok;
+    use claims::assert_err;
+    use claims::assert_ok;
     use fake::faker::internet::en::SafeEmail;
     use fake::faker::lorem::en::Paragraph;
     use fake::{Fake, Faker};
